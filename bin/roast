@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# fledge-plugin-roast — get a tired-senior-dev roast of a commit.
+#
+# Wraps `fledge ask`, so it inherits whatever AI provider/model the user has
+# configured via `fledge ai use`. Works with Claude CLI or any Ollama
+# endpoint, local or cloud.
+set -euo pipefail
+
+COMMIT="HEAD"
+SEVERITY="harsh"
+SHOW_PROMPT=false
+
+usage() {
+  cat <<'EOF'
+fledge roast — roast a commit through the active LLM
+
+USAGE:
+  fledge roast [OPTIONS] [COMMIT]
+
+ARGUMENTS:
+  [COMMIT]    Commit-ish to roast (default: HEAD). Anything `git show` accepts.
+
+OPTIONS:
+  --severity {gentle,harsh,brutal}   Roast intensity (default: harsh)
+  --show-prompt                      Print the prompt that was sent (debug)
+  -h, --help                         Show this help
+
+EXAMPLES:
+  fledge roast                       # roast HEAD
+  fledge roast HEAD~1
+  fledge roast abc1234 --severity brutal
+  fledge roast main..feature/new-thing
+
+  # Forward extra flags to `fledge ask` (provider/model overrides):
+  fledge roast HEAD -- --provider ollama --model qwen3-coder:480b-cloud
+EOF
+}
+
+# Parse args. Positional COMMIT or known flag; `--` ends and forwards the
+# rest to `fledge ask`.
+ASK_PASSTHROUGH=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --severity)
+      SEVERITY="${2:?--severity needs a value}"
+      shift 2
+      ;;
+    --severity=*)
+      SEVERITY="${1#*=}"
+      shift
+      ;;
+    --show-prompt)
+      SHOW_PROMPT=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      ASK_PASSTHROUGH=("$@")
+      break
+      ;;
+    -*)
+      echo "fledge roast: unknown flag '$1' (use -- to forward to fledge ask)" >&2
+      exit 64
+      ;;
+    *)
+      COMMIT="$1"
+      shift
+      ;;
+  esac
+done
+
+case "$SEVERITY" in
+  gentle|harsh|brutal) ;;
+  *)
+    echo "fledge roast: --severity must be one of gentle/harsh/brutal (got '$SEVERITY')" >&2
+    exit 64
+    ;;
+esac
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "fledge roast: not inside a git repository." >&2
+  exit 65
+fi
+
+if ! git rev-parse --verify "$COMMIT" >/dev/null 2>&1; then
+  echo "fledge roast: '$COMMIT' is not a valid commit-ish." >&2
+  exit 65
+fi
+
+# Truncate the diff so we don't blow the model's context. 800 lines covers
+# almost any single commit and keeps cloud-model token usage reasonable.
+DIFF="$(git show "$COMMIT" --stat --patch | head -800)"
+SUBJECT="$(git log -1 --format=%s "$COMMIT")"
+AUTHOR="$(git log -1 --format=%an "$COMMIT")"
+SHORT_SHA="$(git rev-parse --short "$COMMIT")"
+
+case "$SEVERITY" in
+  gentle)
+    TONE="You are a kindly retired engineer who wants the author to grow. Lightly tease them about questionable choices, but end on something genuinely encouraging. Max 5 sentences."
+    ;;
+  harsh)
+    TONE="You are a tired senior developer at the end of a long day of code review. You've seen this kind of commit a thousand times. Be witty, specific, brutally honest, and a little world-weary. Don't be helpful — just roast. Max 5 sentences. No suggestions, no fixes, just the roast."
+    ;;
+  brutal)
+    TONE="You are a 30-year industry veteran who has retired bitter. Channel Linus Torvalds at his angriest. Be specific, surgical, and devastating. The author needs to feel this. Max 5 sentences. No constructive feedback. Pure roast."
+    ;;
+esac
+
+PROMPT="$TONE
+
+The commit:
+
+  Author:  $AUTHOR
+  SHA:     $SHORT_SHA
+  Subject: $SUBJECT
+
+\`\`\`diff
+$DIFF
+\`\`\`
+
+Roast this commit."
+
+if [ "$SHOW_PROMPT" = "true" ]; then
+  echo "--- prompt ---"
+  echo "$PROMPT"
+  echo "--- end prompt ---"
+  echo
+fi
+
+# Hand the prompt to fledge ask — inherits the user's configured provider.
+# --no-spec-index because the project's specs aren't relevant to a roast.
+exec fledge ask --no-spec-index "$PROMPT" "${ASK_PASSTHROUGH[@]}"

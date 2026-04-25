@@ -1,0 +1,16 @@
+[plugin]
+name = "fledge-plugin-roast"
+version = "0.1.0"
+description = "Roast a commit through the active LLM. For entertainment purposes only."
+author = "0xLeif"
+license = "MIT"
+
+[[commands]]
+name = "roast"
+description = "Roast a commit (default: HEAD)"
+binary = "bin/roast"
+
+[capabilities]
+exec = false
+store = false
+metadata = false
