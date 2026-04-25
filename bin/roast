@@ -133,4 +133,4 @@ fi
 
 # Hand the prompt to fledge ask — inherits the user's configured provider.
 # --no-spec-index because the project's specs aren't relevant to a roast.
-exec fledge ask --no-spec-index "$PROMPT" "${ASK_PASSTHROUGH[@]}"
+exec fledge ask --no-spec-index "$PROMPT" ${ASK_PASSTHROUGH[@]+"${ASK_PASSTHROUGH[@]}"}
