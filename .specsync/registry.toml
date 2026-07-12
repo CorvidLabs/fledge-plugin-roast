@@ -1,0 +1,5 @@
+[registry]
+name = "fledge-plugin-roast-trust-wave6"
+
+[specs]
+roast = "specs/roast/roast.spec.md"

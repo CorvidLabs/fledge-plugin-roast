@@ -1,0 +1,12 @@
+# fledge.toml — project task definitions
+[tasks]
+lint = "shellcheck bin/roast"
+syntax = "bash -n bin/roast"
+help = "bin/roast --help >/dev/null"
+invalid_severity = "if bin/roast --severity mild >/dev/null 2>&1; then exit 1; fi"
+invalid_commit = "if bin/roast definitely-not-a-commit >/dev/null 2>&1; then exit 1; fi"
+manifest = "grep -q 'binary = \"bin/roast\"' plugin.toml"
+
+[lanes.verify]
+description = "Lint and behavior-check the commit roast plugin"
+steps = ["lint", "syntax", "help", "invalid_severity", "invalid_commit", "manifest"]
