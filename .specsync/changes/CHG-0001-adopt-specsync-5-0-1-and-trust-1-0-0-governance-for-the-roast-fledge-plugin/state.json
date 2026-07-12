@@ -24,12 +24,7 @@
   "no_spec_change": false,
   "no_spec_change_rationale": null,
   "acceptance_criteria": [
-    "SpecSync strict checks pass at explicit advisory threshold 0 for the extensionless Bash executable; all four integrations are installed; Trust doctor and verification pass; ShellCheck",
-    "syntax",
-    "help",
-    "invalid-severity",
-    "invalid-commit",
-    "and manifest checks remain green."
+    "SpecSync strict checks pass at explicit advisory threshold 0 for the extensionless Bash executable; all four integrations are installed; Trust doctor and verification pass; ShellCheck, syntax, help, invalid-severity, invalid-commit, and manifest checks remain green."
   ],
   "selected_artifacts": [
     "context",
