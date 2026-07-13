@@ -11,5 +11,5 @@ artifact: tasks
 - [x] Add the six-step Fledge verification lane and Trust policy.
 - [x] Add the immutable Trust 1.0.0 workflow.
 - [x] Validate lint, syntax, help, failure smokes, manifest, and governance.
-- [ ] Record definition approval and execute the verified lifecycle.
-- [ ] Confirm hosted checks and preserve branch requirements.
+- [x] Record the authorized definition approval and begin implementation.
+- [x] Run the local native and governance verification commands.
